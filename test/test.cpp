@@ -35,32 +35,45 @@ byte rowPins[4] = {A5, A4, A3, A2};
 byte colPins[3] = {6, 7, 8};
 Keypad keypad = Keypad(makeKeymap(hexKeys), rowPins, colPins, 4, 3);
 LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
-TagDatum tagData[DB_SIZE]; //NOTE: Index 0 must always contain an invalid tagDatum
+String str = "";
+int count = 0;
+TagDatum tagData[DB_SIZE];
 Servo servo;
-String id = "";
-short count = 0;
 
 //HELPER FUNCTIONS
 String waitForTag() {
     count = 0;
-    id = "";
+    str = "";
     while (true) {
         while (Serial.available() > 0) {
-            id += (char)Serial.read();
+            str += (char) Serial.read();
             count++;
             if (count == 12) {
-                Serial.println("Tag detected with id " + id);
-                return id;
+                Serial.println("Tag detected with id " + str);
+                return str;
+            }
+        }
+    }
+}
+
+String waitForKey() {
+    count = 0;
+    str = "";
+    while (true) {
+        while (Serial.available() > 0) {
+            str += (char) Serial.read();
+            count++;
+            if (count == 1) {
+                return str;
             }
         }
     }
 }
 
 void print(String line1, String line2) {
-    lcd.clear();
-    lcd.print(line1);
-    lcd.setCursor(0, 1);
-    lcd.print(line2);
+    Serial.println(line1);
+    Serial.println(line2);
+    Serial.println("========================");
 }
 
 short getIndexById(String id) {
@@ -122,8 +135,8 @@ void loop() {
         if (tagData[tagIndex].isMaster) {
             //CASE: Tag is the master tag
             waitForKey1: print("MASTER MENU: Choose an option", OPTIONS_MASTER);
-            char key = keypad.waitForKey();
-            if (key == '1') {
+            String key = waitForKey();
+            if (key == "1") {
                 //CASE: Edit database
                 waitForTag1: print("EDIT DATABASE: Produce an RFID tag", "");
                 String id = waitForTag();
@@ -131,8 +144,8 @@ void loop() {
                 if (tagIndex == -1) {
                     //CASE: Tag is not registered
                     waitForKey2: print("UNREGISTERED TAG MENU: Choose an option", OPTIONS_UNREGISTERED_TAG);
-                    char key = keypad.waitForKey();
-                    if (key == '1') {
+                    String key = waitForKey();
+                    if (key == "1") {
                         //CASE: Register new tag
                         short newIndex = getNextEmptyIndex();
                         if (newIndex == -1) {
@@ -146,7 +159,7 @@ void loop() {
                             print("Tag registered successfully", "Please wait");
                             delay(2000);
                         }
-                    } else if (key == '#') {
+                    } else if (key == "#") {
                         //CASE: Cancel setup
                         print("Aborting setup", "Please wait");
                         delay(2000);
@@ -164,35 +177,35 @@ void loop() {
                 } else {
                     //CASE: Tag is registered
                     waitForKey3: print("REGISTERED TAG MENU: Choose an option", OPTIONS_REGISTERED_TAG);
-                    char key = keypad.waitForKey();
-                    if (key == '1') {
+                    String key = waitForKey();
+                    if (key == "1") {
                         //CASE: Unregister tag
                         tagData[tagIndex] = TagDatum(); 
                         print("Tag removed successfully", "Please wait");
                         delay(2000);
-                    } else if (key == '2') {
+                    } else if (key == "2") {
                         //CASE: Update tag properties
                         waitForKey4: print("EDIT TAG MENU: Choose an option", OPTIONS_EDIT_TAG);
-                        char key = keypad.waitForKey();
-                        if (key == '1') {
+                        String key = waitForKey();
+                        if (key == "1") {
                             //CASE: Activate tag
                             tagData[tagIndex].isActive = true;
                             print("Tag activated successfully", "Continue editing tag");
                             delay(2000);
                             goto waitForKey4;
-                        } else if (key == '2') {
+                        } else if (key == "2") {
                             //CASE: Deactivate tag
                             tagData[tagIndex].isActive = false;
                             print("Tag deactivated successfully", "Continue editing tag");
                             delay(2000);
                             goto waitForKey4;
-                        } else if (key == '3') {
+                        } else if (key == "3") {
                             //CASE: Make tag the master
                             tagData[findMasterIndex()].isMaster = false;
                             tagData[tagIndex].isMaster = true;
                             print("Tag is now the master", "Please wait");
                             delay(2000);
-                        }else if (key == '#') {
+                        }else if (key == "#") {
                             //CASE: Cancel setup
                             print("Aborting setup", "Please wait");
                             delay(2000);
@@ -202,7 +215,7 @@ void loop() {
                             delay(2000);
                             goto waitForKey4;
                         }
-                    } else if (key == '#') {
+                    } else if (key == "#") {
                         //CASE: Cancel setup
                         print("Aborting setup", "Please wait");
                         delay(2000);
@@ -213,7 +226,7 @@ void loop() {
                         goto waitForKey3;
                     }
                 }
-            } else if (key == '#') {
+            } else if (key == "#") {
                 //CASE: Cancel setup
                 print("Aborting setup. Please wait", "");
                 delay(2000);
