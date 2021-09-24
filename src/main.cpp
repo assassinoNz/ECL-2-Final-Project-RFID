@@ -4,7 +4,7 @@
 #include <Servo.h> 
 
 #define DB_SIZE 5
-#define OPTIONS_MASTER "1.Edit Database #.Cancel"
+#define OPTIONS_MASTER "1.Tag management #.Cancel"
 #define OPTIONS_UNREGISTERED_TAG "1.Register #.Cancel"
 #define OPTIONS_REGISTERED_TAG "1.Unregister 2.Edit tag #.Cancel"
 #define OPTIONS_EDIT_TAG "1.Activate 2.Deactivate 3.Make master #.Cancel"
@@ -46,7 +46,7 @@ String waitForTag() {
     id = "";
     while (true) {
         while (Serial.available() > 0) {
-            id += (char)Serial.read();
+            id += (char) Serial.read();
             count++;
             if (count == 12) {
                 Serial.println("Tag detected with id " + id);
@@ -102,9 +102,7 @@ void setup() {
 
     //INITIALIZE DATABASE
     tagData[0] = TagDatum("AAAAAAAAAAAA", true, true);
-    tagData[1] = TagDatum("BBBBBBBBBBBB", true, false);
-    tagData[2] = TagDatum("CCCCCCCCCCCC", false, false);
-    for (int i = 3; i < DB_SIZE; i++) {
+    for (int i = 1; i < DB_SIZE; i++) {
         tagData[i] = TagDatum();
     }
 }
@@ -125,7 +123,7 @@ void loop() {
             char key = keypad.waitForKey();
             if (key == '1') {
                 //CASE: Edit database
-                waitForTag1: print("EDIT DATABASE: Produce an RFID tag", "");
+                waitForTag1: print("TAG MANAGEMENT: Produce an RFID tag", "");
                 String id = waitForTag();
                 short tagIndex = getIndexById(id);
                 if (tagIndex == -1) {
@@ -142,9 +140,11 @@ void loop() {
                             goto waitForKey2;
                         } else {
                             //CASE: Tag registered successfully
-                            tagData[newIndex] = TagDatum(id, false, false); 
+                            tagData[newIndex] = TagDatum(id, false, false);
                             print("Tag registered successfully", "Please wait");
                             delay(2000);
+                            tagIndex = newIndex;
+                            goto waitForKey3;
                         }
                     } else if (key == '#') {
                         //CASE: Cancel setup
@@ -189,8 +189,9 @@ void loop() {
                         } else if (key == '3') {
                             //CASE: Make tag the master
                             tagData[findMasterIndex()].isMaster = false;
+                            tagData[tagIndex].isActive = true;
                             tagData[tagIndex].isMaster = true;
-                            print("Tag is now the master", "Please wait");
+                            print("Master tag is replaced successfully", "Please wait");
                             delay(2000);
                         }else if (key == '#') {
                             //CASE: Cancel setup
@@ -228,7 +229,7 @@ void loop() {
             servo.write(180);
             print("Access granted", "Have a nice day!");
             delay(2000);
-            print("The door will be locked soon", "Hurry!");
+            print("The door will be locked down soon", "Hurry!");
             delay(10000);
             servo.write(0);
             print("Locking", "Please wait");
