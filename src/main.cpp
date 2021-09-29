@@ -9,11 +9,11 @@
 
 #define DB_SIZE 5
 #define DELAY 2000
-#define OPTIONS_MASTER "1.Tag management #.Quit"
-#define OPTIONS_UNREGISTERED_TAG "1.Register #.Quit"
-#define OPTIONS_REGISTERED_TAG "1.Unregister 2.Edit tag #.Quit"
-#define OPTIONS_EDIT_TAG_ACTIVE "1.Deactivate 2.Make master #.Quit"
-#define OPTIONS_EDIT_TAG_INACTIVE "1.Activate 2.Make master #.Quit"
+#define OPTIONS_MASTER "1.Tag management *.Quit"
+#define OPTIONS_UNREGISTERED_TAG "1.Register *.Quit"
+#define OPTIONS_REGISTERED_TAG "1.Unregister 2.Edit tag *.Quit"
+#define OPTIONS_EDIT_TAG_ACTIVE "1.Deactivate 2.Make master *.Quit"
+#define OPTIONS_EDIT_TAG_INACTIVE "1.Activate 2.Make master *.Quit"
 
 //DEFINE DATA STRUCTURES
 class TagDatum {
@@ -48,10 +48,13 @@ short count = 0;
 
 //HELPER FUNCTIONS
 String waitForTag() {
-    count = 0;
     id = "";
+    count = 0;
     while (true) {
-        while (Serial.available() > 0) {
+        if (keypad.getKey() == '*') {
+            return "";
+        }
+        if (Serial.available()) {
             id += (char) Serial.read();
             count++;
             if (count == 12) {
@@ -126,7 +129,7 @@ void setup() {
 }
 
 void loop() {
-    print("Welcome!", "Please produce your RFID tag");
+    waitForTag1: print("Welcome!", "Please produce your RFID tag");
     String id = waitForTag();
     short tagIndex = getIndexById(id);
     if (tagIndex == -1) {
@@ -147,8 +150,12 @@ void loop() {
             char key = keypad.waitForKey();
             if (key == '1') {
                 //CASE: Edit database
-                waitForTag1: print("TAG MANAGEMENT: Produce an RFID tag", "");
+                waitForTag2: print("TAG MANAGEMENT: Produce an RFID tag", "*. Quit");
                 String id = waitForTag();
+                if (id == "") {
+                    abortSetup("Aborting", "Please wait");
+                    goto waitForTag1;
+                }
                 short tagIndex = getIndexById(id);
                 if (tagIndex == -1) {
                     //CASE: Tag is not registered
@@ -170,7 +177,7 @@ void loop() {
                             tagIndex = newIndex;
                             goto waitForKey3;
                         }
-                    } else if (key == '#') {
+                    } else if (key == '*') {
                         //CASE: Cancel setup
                         abortSetup("Aborting setup", "Please wait");
                     } else {
@@ -183,7 +190,7 @@ void loop() {
                     //CASE: Tag is the master tag
                     print("Cannot edit the master tag itself", "Try with another tag");
                     delay(DELAY);
-                    goto waitForTag1;
+                    goto waitForTag2;
                 } else {
                     //CASE: Tag is registered
                     waitForKey3: print("REGISTERED TAG MENU: Choose an option", OPTIONS_REGISTERED_TAG);
@@ -218,7 +225,7 @@ void loop() {
                             tagData[tagIndex].isActive = true;
                             tagData[tagIndex].isMaster = true;
                             abortSetup("Master tag is replaced successfully", "Quitting setup");
-                        }else if (key == '#') {
+                        }else if (key == '*') {
                             //CASE: Cancel setup
                             abortSetup("Aborting setup", "Please wait");
                         } else {
@@ -227,7 +234,7 @@ void loop() {
                             delay(DELAY);
                             goto waitForKey4;
                         }
-                    } else if (key == '#') {
+                    } else if (key == '*') {
                         //CASE: Cancel setup
                         abortSetup("Aborting setup", "Please wait");
                     } else {
@@ -237,7 +244,7 @@ void loop() {
                         goto waitForKey3;
                     }
                 }
-            } else if (key == '#') {
+            } else if (key == '*') {
                 //CASE: Cancel setup
                 abortSetup("Aborting setup", "Please wait");
             } else {
