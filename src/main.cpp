@@ -126,7 +126,8 @@ void setup() {
 
     //INITIALIZE DATABASE
     tagData[0] = TagDatum("AAAAAAAAAAAA", true, true);
-    for (int i = 1; i < DB_SIZE; i++) {
+    tagData[1] = TagDatum("BBBBBBBBBBBB", true, false);
+    for (int i = 2; i < DB_SIZE; i++) {
         tagData[i] = TagDatum();
     }
 }
@@ -261,18 +262,26 @@ void loop() {
             servo.write(180);
             print("Access granted", "Have a nice day!");
             digitalWrite(GREEN_LED, HIGH);
-            delay(DELAY);
-            print("The door will be locked down soon", "Hurry!");
-            delay(10000);
-            servo.write(0);
+            //Wait for door to open
+            Serial.println("Waiting for door to open");
+            Serial.println(digitalRead(DOOR));
+            while (digitalRead(DOOR) == HIGH) {
+            }
+            print("Please close the door behind you", "");
+            //Wait for door to close
+            Serial.println("Waiting for door to close");
+            while (digitalRead(DOOR) == LOW) {
+            }
             print("Locking down", "Please wait");
+            delay(DELAY);
+            servo.write(0);
             digitalWrite(GREEN_LED, LOW);
             delay(DELAY);
         }
     } else {
         //CASE: Tag is registered in the database and is not active
+        tone(BUZZER, 10);
         print("Tag has no access permissions", "Access denied");
-        tone(BUZZER, 10000);
         digitalWrite(RED_LED, HIGH);
         delay(5000);
         noTone(BUZZER);
