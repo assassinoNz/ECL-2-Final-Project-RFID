@@ -14,6 +14,7 @@
 #define OPTIONS_REGISTERED_TAG "1.Unregister 2.Edit tag *.Quit"
 #define OPTIONS_EDIT_TAG_ACTIVE "1.Deactivate 2.Make master *.Quit"
 #define OPTIONS_EDIT_TAG_INACTIVE "1.Activate 2.Make master *.Quit"
+#define OPTIONS_AWAIT_TAG "*.Quit"
 
 //DEFINE DATA STRUCTURES
 class TagDatum {
@@ -150,10 +151,10 @@ void loop() {
             char key = keypad.waitForKey();
             if (key == '1') {
                 //CASE: Edit database
-                waitForTag2: print("TAG MANAGEMENT: Produce an RFID tag", "*. Quit");
+                waitForTag2: print("TAG MANAGEMENT: Produce an RFID tag", OPTIONS_AWAIT_TAG);
                 String id = waitForTag();
                 if (id == "") {
-                    abortSetup("Aborting", "Please wait");
+                    abortSetup("Quitting", "Please wait");
                     goto waitForTag1;
                 }
                 short tagIndex = getIndexById(id);
