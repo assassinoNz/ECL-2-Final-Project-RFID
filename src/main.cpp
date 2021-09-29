@@ -3,6 +3,7 @@
 #include <Keypad.h>
 #include <Servo.h>
 
+#define DOOR A3
 #define RED_LED A0
 #define GREEN_LED A1
 #define BUZZER 10
@@ -109,6 +110,7 @@ void abortSetup(String line1, String line2) {
 
 void setup() {
     //SETUP PINS
+    pinMode(DOOR, INPUT);
     pinMode(RED_LED, OUTPUT);
     pinMode(GREEN_LED, OUTPUT);
     pinMode(BUZZER, OUTPUT);
@@ -130,7 +132,7 @@ void setup() {
 }
 
 void loop() {
-    waitForTag1: print("Welcome!", "Please produce your RFID tag");
+    print("Welcome!", "Please produce your RFID tag");
     String id = waitForTag();
     short tagIndex = getIndexById(id);
     if (tagIndex == -1) {
@@ -151,98 +153,98 @@ void loop() {
             char key = keypad.waitForKey();
             if (key == '1') {
                 //CASE: Edit database
-                waitForTag2: print("TAG MANAGEMENT: Produce an RFID tag", OPTIONS_AWAIT_TAG);
+                waitForTag1: print("TAG MANAGEMENT: Produce an RFID tag", OPTIONS_AWAIT_TAG);
                 String id = waitForTag();
                 if (id == "") {
                     abortSetup("Quitting", "Please wait");
-                    goto waitForTag1;
-                }
-                short tagIndex = getIndexById(id);
-                if (tagIndex == -1) {
-                    //CASE: Tag is not registered
-                    waitForKey2: print("UNREGISTERED TAG MENU: Choose an option", OPTIONS_UNREGISTERED_TAG);
-                    char key = keypad.waitForKey();
-                    if (key == '1') {
-                        //CASE: Register new tag
-                        short newIndex = getNextEmptyIndex();
-                        if (newIndex == -1) {
-                            //CASE: Database is full
-                            print("Database is full", "Choose another option");
-                            delay(DELAY);
-                            goto waitForKey2;
-                        } else {
-                            //CASE: Tag registered successfully
-                            tagData[newIndex] = TagDatum(id, false, false);
-                            print("Tag registered successfully", "Please wait");
-                            delay(DELAY);
-                            tagIndex = newIndex;
-                            goto waitForKey3;
-                        }
-                    } else if (key == '*') {
-                        //CASE: Cancel setup
-                        abortSetup("Aborting setup", "Please wait");
-                    } else {
-                        //CASE: Undefined option selected
-                        print("No option for the key " + String(key), "Try again");
-                        delay(DELAY);
-                        goto waitForKey2;
-                    }
-                } else if (tagIndex == findMasterIndex()) {
-                    //CASE: Tag is the master tag
-                    print("Cannot edit the master tag itself", "Try with another tag");
-                    delay(DELAY);
-                    goto waitForTag2;
                 } else {
-                    //CASE: Tag is registered
-                    waitForKey3: print("REGISTERED TAG MENU: Choose an option", OPTIONS_REGISTERED_TAG);
-                    char key = keypad.waitForKey();
-                    if (key == '1') {
-                        //CASE: Unregister tag
-                        tagData[tagIndex] = TagDatum();
-                        abortSetup("Tag removed successfully", "Quitting setup");
-                    } else if (key == '2') {
-                        //CASE: Update tag properties
-                        waitForKey4: if (tagData[tagIndex].isActive) {
-                            print("TAG MENU: Choose an option", OPTIONS_EDIT_TAG_ACTIVE);
-                        } else {
-                            print("TAG MENU: Choose an option", OPTIONS_EDIT_TAG_INACTIVE);
-                        }
+                    short tagIndex = getIndexById(id);
+                    if (tagIndex == -1) {
+                        //CASE: Tag is not registered
+                        waitForKey2: print("UNREGISTERED TAG MENU: Choose an option", OPTIONS_UNREGISTERED_TAG);
                         char key = keypad.waitForKey();
-                        if (key == '1' && tagData[tagIndex].isActive) {
-                            //CASE: Deactivate tag
-                            tagData[tagIndex].isActive = false;
-                            print("Tag deactivated successfully", "Please continue");
-                            delay(DELAY);
-                            goto waitForKey4;
-                        } else if (key == '1' && !tagData[tagIndex].isActive) {
-                            //CASE: Activate tag
-                            tagData[tagIndex].isActive = true;
-                            print("Tag activated successfully", "Please continue");
-                            delay(DELAY);
-                            goto waitForKey4;
-                        } else if (key == '2') {
-                            //CASE: Make tag the master
-                            tagData[findMasterIndex()].isMaster = false;
-                            tagData[tagIndex].isActive = true;
-                            tagData[tagIndex].isMaster = true;
-                            abortSetup("Master tag is replaced successfully", "Quitting setup");
-                        }else if (key == '*') {
+                        if (key == '1') {
+                            //CASE: Register new tag
+                            short newIndex = getNextEmptyIndex();
+                            if (newIndex == -1) {
+                                //CASE: Database is full
+                                print("Database is full", "Choose another option");
+                                delay(DELAY);
+                                goto waitForKey2;
+                            } else {
+                                //CASE: Tag registered successfully
+                                tagData[newIndex] = TagDatum(id, false, false);
+                                print("Tag registered successfully", "Please wait");
+                                delay(DELAY);
+                                tagIndex = newIndex;
+                                goto waitForKey3;
+                            }
+                        } else if (key == '*') {
                             //CASE: Cancel setup
                             abortSetup("Aborting setup", "Please wait");
                         } else {
                             //CASE: Undefined option selected
                             print("No option for the key " + String(key), "Try again");
                             delay(DELAY);
-                            goto waitForKey4;
+                            goto waitForKey2;
                         }
-                    } else if (key == '*') {
-                        //CASE: Cancel setup
-                        abortSetup("Aborting setup", "Please wait");
-                    } else {
-                        //CASE: Undefined option selected
-                        print("No option for the key " + String(key), "Try again");
+                    } else if (tagIndex == findMasterIndex()) {
+                        //CASE: Tag is the master tag
+                        print("Cannot edit the master tag itself", "Try with another tag");
                         delay(DELAY);
-                        goto waitForKey3;
+                        goto waitForTag1;
+                    } else {
+                        //CASE: Tag is registered
+                        waitForKey3: print("REGISTERED TAG MENU: Choose an option", OPTIONS_REGISTERED_TAG);
+                        char key = keypad.waitForKey();
+                        if (key == '1') {
+                            //CASE: Unregister tag
+                            tagData[tagIndex] = TagDatum();
+                            abortSetup("Tag removed successfully", "Quitting setup");
+                        } else if (key == '2') {
+                            //CASE: Update tag properties
+                            waitForKey4: if (tagData[tagIndex].isActive) {
+                                print("TAG MENU: Choose an option", OPTIONS_EDIT_TAG_ACTIVE);
+                            } else {
+                                print("TAG MENU: Choose an option", OPTIONS_EDIT_TAG_INACTIVE);
+                            }
+                            char key = keypad.waitForKey();
+                            if (key == '1' && tagData[tagIndex].isActive) {
+                                //CASE: Deactivate tag
+                                tagData[tagIndex].isActive = false;
+                                print("Tag deactivated successfully", "Please continue");
+                                delay(DELAY);
+                                goto waitForKey4;
+                            } else if (key == '1' && !tagData[tagIndex].isActive) {
+                                //CASE: Activate tag
+                                tagData[tagIndex].isActive = true;
+                                print("Tag activated successfully", "Please continue");
+                                delay(DELAY);
+                                goto waitForKey4;
+                            } else if (key == '2') {
+                                //CASE: Make tag the master
+                                tagData[findMasterIndex()].isMaster = false;
+                                tagData[tagIndex].isActive = true;
+                                tagData[tagIndex].isMaster = true;
+                                abortSetup("Master tag is replaced successfully", "Quitting setup");
+                            }else if (key == '*') {
+                                //CASE: Cancel setup
+                                abortSetup("Aborting setup", "Please wait");
+                            } else {
+                                //CASE: Undefined option selected
+                                print("No option for the key " + String(key), "Try again");
+                                delay(DELAY);
+                                goto waitForKey4;
+                            }
+                        } else if (key == '*') {
+                            //CASE: Cancel setup
+                            abortSetup("Aborting setup", "Please wait");
+                        } else {
+                            //CASE: Undefined option selected
+                            print("No option for the key " + String(key), "Try again");
+                            delay(DELAY);
+                            goto waitForKey3;
+                        }
                     }
                 }
             } else if (key == '*') {
