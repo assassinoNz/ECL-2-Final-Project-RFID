@@ -47,6 +47,7 @@ TagDatum tagData[DB_SIZE]; //NOTE: Index 0 must always contain an invalid tagDat
 Servo servo;
 String id = "";
 short count = 0;
+unsigned long unlockStart = 0;
 
 //HELPER FUNCTIONS
 String waitForTag() {
@@ -157,8 +158,10 @@ void loop() {
                 waitForTag1: print("TAG MANAGEMENT: Produce an RFID tag", OPTIONS_AWAIT_TAG);
                 String id = waitForTag();
                 if (id == "") {
+                    //CASE: User needs to abort
                     abortSetup("Quitting", "Please wait");
                 } else {
+                    //CASE: A tag is produced
                     short tagIndex = getIndexById(id);
                     if (tagIndex == -1) {
                         //CASE: Tag is not registered
@@ -262,17 +265,22 @@ void loop() {
             servo.write(180);
             print("Access granted", "Have a nice day!");
             digitalWrite(GREEN_LED, HIGH);
-            //Wait for door to open
-            Serial.println("Waiting for door to open");
-            Serial.println(digitalRead(DOOR));
+            //Wait for the door to open
+            Serial.println("Waiting for the door to open");
+            unlockStart = millis();
             while (digitalRead(DOOR) == HIGH) {
+                if (millis()-unlockStart > 10000) {
+                    //CASE: No activity from user
+                    Serial.println("No user activity. Initiating lockdown");
+                    goto lockdown;
+                }
             }
             print("Please close the door behind you", "");
-            //Wait for door to close
-            Serial.println("Waiting for door to close");
+            //Wait for the door to close
+            Serial.println("Waiting for the door to close");
             while (digitalRead(DOOR) == LOW) {
             }
-            print("Locking down", "Please wait");
+            lockdown: print("Locking down", "Please wait");
             delay(DELAY);
             servo.write(0);
             digitalWrite(GREEN_LED, LOW);
